@@ -102,27 +102,6 @@
   toggleBtn.textContent = '历史记录';
   container.appendChild(toggleBtn);
 
-  // function getMainContent() {
-  //   const filterELes = [document.querySelector('.tree-nav-container'), document.body, document.documentElement]
-  //   const elements = [...document.elementsFromPoint(100, 100)].filter(it => !filterELes.includes(it))
-  //   const main = elements[0]
-  //   return main;
-  // }
-  // // 调整主内容区域宽度
-  // const mainContent = getMainContent()
-
-  // 把body所有元素放入新盒子中，设置新盒子的scale，fixed的盒子移到body中
-  function setNewBox() {
-    const newBox = document.createElement('div')
-    newBox.id = 'newRootBox'
-    const childs = [...document.body.children]
-    childs.forEach(child => {
-      newBox.appendChild(child)
-    })
-    document.body.appendChild(newBox)
-    return newBox
-  }
-
   function setFixedNewParent() {
     const fixedBoxs = []
     function getFixedBoxs(node) {
@@ -132,7 +111,7 @@
           flag = false
           const nodeRect = node.getBoundingClientRect()
           const nodeParentRect = node.parentNode.getBoundingClientRect()
-          // fixed元素在父元素内，不处理，在父元素外，提取到 newRootBox中
+          // fixed元素在父元素内，不处理，在父元素外，提取到 body 外面
           if (nodeRect.top >= nodeParentRect.top || nodeRect.left >= nodeParentRect.left || nodeRect.bottom <= nodeParentRect.bottom || nodeRect.right <= nodeParentRect.right) { } else {
             fixedBoxs.push(node)
           }
@@ -149,11 +128,10 @@
 
     getFixedBoxs(document.body)
     fixedBoxs.forEach(fixedBox => {
-      document.body.appendChild(fixedBox)
+      document.documentElement.appendChild(fixedBox)
     })
   }
 
-  const newRoot = setNewBox()
   setFixedNewParent()
 
   // 切换状态
@@ -166,10 +144,10 @@
     document.body.classList.toggle('tree-nav-active', isActive);
     if (isActive) {
       // 应用缩放变换
-      newRoot.style.transform = `scale(${getTransform()})`;
-      newRoot.style.transformOrigin = 'top right';
+      document.body.style.transform = `scale(${getTransform()})`;
+      document.body.style.transformOrigin = 'top right';
     } else {
-      newRoot.style.transform = 'unset'
+      document.body.style.transform = 'unset'
     }
   });
 
