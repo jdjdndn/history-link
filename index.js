@@ -25,7 +25,7 @@
             // overflow-y: auto;
             padding: 40px 0 15px;
             transition: left 0.3s ease;
-            z-index:999999
+            z-index:999999;
             font-size: 16px;
         }
         .tree-nav-container.active {
