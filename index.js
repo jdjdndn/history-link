@@ -102,36 +102,76 @@
   toggleBtn.textContent = '历史记录';
   container.appendChild(toggleBtn);
 
+  // 通过遍历document.body，获取所有position:fixed元素，将元素移出body
+  // 弊病：有positon:fixed的元素，其css样式并不是 :自己，而是 :父亲 :自己，需要将父亲直接移出body外
+  // function setFixedNewParent() {
+  //   const fixedBoxs = []
+  //   function getFixedBoxs(node) {
+  //     if (node.nodeType === 1) {
+  //       let flag = true
+  //       if (getComputedStyle(node).position === 'fixed') {
+  //         flag = false
+  //         const nodeRect = node.getBoundingClientRect()
+  //         const nodeParent = node.parentNode
+  //         const nodeParentRect = nodeParent.getBoundingClientRect()
+  //         // fixed元素在父元素内，不处理，在父元素外，提取到 body 外面
+  //         if (nodeRect.top >= nodeParentRect.top || nodeRect.left >= nodeParentRect.left || nodeRect.bottom <= nodeParentRect.bottom || nodeRect.right <= nodeParentRect.right) { } else {
+  //         }
+  //         fixedBoxs.push(node)
+  //       }
+  //       if (flag) {
+  //         const childs = [...node.children]
+  //         childs.forEach(child => {
+  //           getFixedBoxs(child)
+  //         })
+  //       }
+  //       flag = true
+  //     }
+  //   }
+
+  //   getFixedBoxs(document.body)
+  //   fixedBoxs.forEach(fixedBox => {
+  //     document.documentElement.appendChild(fixedBox)
+  //   })
+  // }
+
+
+  // 通过遍历document.styleSheets找到position:fixed的元素，将其选择器中的父亲一起移到body外
   function setFixedNewParent() {
-    const fixedBoxs = []
-    function getFixedBoxs(node) {
-      if (node.nodeType === 1) {
-        let flag = true
-        if (getComputedStyle(node).position === 'fixed') {
-          flag = false
-          const nodeRect = node.getBoundingClientRect()
-          const nodeParentRect = node.parentNode.getBoundingClientRect()
-          // fixed元素在父元素内，不处理，在父元素外，提取到 body 外面
-          if (nodeRect.top >= nodeParentRect.top || nodeRect.left >= nodeParentRect.left || nodeRect.bottom <= nodeParentRect.bottom || nodeRect.right <= nodeParentRect.right) { } else {
-            fixedBoxs.push(node)
+    const sheets = document.styleSheets;
+    const fixedBoxs = [];
+
+    for (const sheet of sheets) {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (!rules) continue;
+
+        for (const rule of rules) {
+          const regex = /position:\s*fixed/;
+          if (rule.cssText.match(regex)) {
+
+            // 暂时假设匹配的元素只有一个
+            const fixedNode = document.body.querySelector(rule.selectorText);
+            if (!fixedNode) continue
+            // console.log('fixedNode', fixedNode);
+
+            const splitClassArr = rule.selectorText.split(" ")
+            if (splitClassArr.length <= 1) {
+              fixedBoxs.push(fixedNode);
+            } else {
+              // console.log(document.querySelector(splitClassArr[0]), 'document.querySelector(splitClassArr[0])');
+              fixedBoxs.push(document.querySelector(splitClassArr[0]));
+            }
           }
         }
-        if (flag) {
-          const childs = [...node.children]
-          childs.forEach(child => {
-            getFixedBoxs(child)
-          })
-        }
-        flag = true
-      }
+      } catch (e) { }
     }
+    // console.log(fixedBoxs, 'fixedBoxs');
 
-    getFixedBoxs(document.body)
     fixedBoxs.forEach(fixedBox => {
       document.documentElement.appendChild(fixedBox)
     })
   }
-
   setFixedNewParent()
 
   // 切换状态
