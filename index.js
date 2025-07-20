@@ -11,6 +11,7 @@
 
 (function () {
   'use strict';
+  if (window.top !== window) return
 
   // 添加样式
   GM_addStyle(`
@@ -104,40 +105,13 @@
 
   // 通过遍历document.body，获取所有position:fixed元素，将元素移出body
   // 弊病：有positon:fixed的元素，其css样式并不是 :自己，而是 :父亲 :自己，需要将父亲直接移出body外
-  // function setFixedNewParent() {
-  //   const fixedBoxs = []
-  //   function getFixedBoxs(node) {
-  //     if (node.nodeType === 1) {
-  //       let flag = true
-  //       if (getComputedStyle(node).position === 'fixed') {
-  //         flag = false
-  //         const nodeRect = node.getBoundingClientRect()
-  //         const nodeParent = node.parentNode
-  //         const nodeParentRect = nodeParent.getBoundingClientRect()
-  //         // fixed元素在父元素内，不处理，在父元素外，提取到 body 外面
-  //         if (nodeRect.top >= nodeParentRect.top || nodeRect.left >= nodeParentRect.left || nodeRect.bottom <= nodeParentRect.bottom || nodeRect.right <= nodeParentRect.right) { } else {
-  //         }
-  //         fixedBoxs.push(node)
-  //       }
-  //       if (flag) {
-  //         const childs = [...node.children]
-  //         childs.forEach(child => {
-  //           getFixedBoxs(child)
-  //         })
-  //       }
-  //       flag = true
-  //     }
-  //   }
 
-  //   getFixedBoxs(document.body)
-  //   fixedBoxs.forEach(fixedBox => {
-  //     document.documentElement.appendChild(fixedBox)
-  //   })
-  // }
-
-
-  // 通过遍历document.styleSheets找到position:fixed的元素，将其选择器中的父亲一起移到body外
-  function setFixedNewParent() {
+  /**
+   * 通过遍历document.styleSheets找到position:fixed的元素，将其选择器中的父亲一起移到body外
+   * @param {boolean} isBodyBrother 是否需要为body的兄弟元素
+   * @returns
+   */
+  function setFixedNewParent(isBodyBrother = true) {
     const sheets = document.styleSheets;
     const fixedBoxs = [];
 
@@ -159,39 +133,67 @@
             if (splitClassArr.length <= 1) {
               fixedBoxs.push(fixedNode);
             } else {
-              // console.log(document.querySelector(splitClassArr[0]), 'document.querySelector(splitClassArr[0])');
-              fixedBoxs.push(document.querySelector(splitClassArr[0]));
+              // console.log(rule.selectorText, 'rule.selectorText');
+              // 可能父选择器是body
+              const parentNode = document.querySelector(splitClassArr[0])
+              if (parentNode !== body) {
+                fixedBoxs.push(parentNode);
+              } else {
+                fixedBoxs.push(document.querySelector(splitClassArr[1]));
+              }
             }
           }
         }
       } catch (e) { }
     }
     // console.log(fixedBoxs, 'fixedBoxs');
-
     fixedBoxs.forEach(fixedBox => {
-      document.documentElement.appendChild(fixedBox)
+      isBodyBrother ? document.documentElement.appendChild(fixedBox) : document.body.appendChild(fixedBox)
     })
+    return fixedBoxs
   }
-  setFixedNewParent()
+
+  let transformScale = getTransform()
+  const fixedBoxs = setFixedNewParent()
 
   // 切换状态
   let isActive = false;
   toggleBtn.addEventListener('click', () => {
-
+    const scrollY = window.scrollY
     isActive = !isActive;
     container.classList.toggle('active', isActive);
     toggleBtn.classList.toggle('active', isActive);
     document.body.classList.toggle('tree-nav-active', isActive);
+    resetScroll(scrollY, isActive)
     if (isActive) {
       // 应用缩放变换
-      document.body.style.transform = `scale(${getTransform()})`;
+      document.body.style.transform = `scale(${transformScale})`;
       document.body.style.transformOrigin = 'top right';
+      fixedBoxs.forEach(fixedBox => {
+        fixedBox.style.transform = `scale(${transformScale})`
+        fixedBox.style.transformOrigin = 'top center';
+      })
     } else {
       document.body.style.transform = 'unset'
+      fixedBoxs.forEach(fixedBox => {
+        fixedBox.style.transform = 'unset'
+      })
     }
   });
 
+  /**
+   * 根据缩放比重新计算页面scrollY
+   * @param {number} scrollY 页面高度
+   * @param {boolean} scrollFlag 缩还是放
+   * @returns
+   */
+  function resetScroll(scrollY, scrollFlag) {
+    if (scrollY === 0) return
+    const newScrollY = scrollFlag ? scrollY * transformScale : scrollY / transformScale
+    window.scrollTo(0, newScrollY);
+  }
 
+  // 获取缩放比
   function getTransform() {
     // 获取页面当前宽度
     const originalWidth = document.documentElement.clientWidth;
